@@ -1,20 +1,20 @@
 
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../services/firebase';
+import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 
-const AdminLoginScreen = ({ navigation }) => {
-  const [email, setEmail] = useState('');
+const AdminLoginScreen = () => {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const router = useRouter();
 
-  const handleLogin = async () => {
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigation.replace('AdminDashboard');
-    } catch (err) {
-      setError(err.message);
+  const handleLogin = () => {
+    // For now, using hardcoded credentials. 
+    // In a real app, you would want to use a more secure method.
+    if (username === 'admin' && password === 'password') {
+      router.replace('/AdminPanel');
+    } else {
+      Alert.alert('Invalid Credentials', 'Please check your username and password.');
     }
   };
 
@@ -23,9 +23,9 @@ const AdminLoginScreen = ({ navigation }) => {
       <Text style={styles.title}>Admin Login</Text>
       <TextInput
         style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
+        placeholder="Username"
+        value={username}
+        onChangeText={setUsername}
         autoCapitalize="none"
       />
       <TextInput
@@ -35,7 +35,6 @@ const AdminLoginScreen = ({ navigation }) => {
         onChangeText={setPassword}
         secureTextEntry
       />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
       <Button title="Login" onPress={handleLogin} />
     </View>
   );
@@ -45,25 +44,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
+    padding: 20,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 24,
+    marginBottom: 20,
+    textAlign: 'center',
   },
   input: {
-    width: '100%',
-    padding: 12,
+    height: 40,
+    borderColor: 'gray',
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
-    marginBottom: 16,
-  },
-  error: {
-    color: 'red',
-    marginBottom: 16,
+    marginBottom: 20,
+    paddingHorizontal: 10,
   },
 });
 

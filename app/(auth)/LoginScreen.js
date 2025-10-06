@@ -1,18 +1,50 @@
 
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { signInWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { auth } from '../services/firebase';
+import { useRouter } from 'expo-router';
 
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const router = useRouter();
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      setError('Please enter both email and password.');
+      return;
+    }
+
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigation.replace('Home');
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      if (user.emailVerified) {
+        // The root layout will handle the redirect to home automatically
+      } else {
+        Alert.alert(
+          'Email Not Verified',
+          'Please verify your email address to log in. Check your inbox for the verification link.',
+          [
+            {
+              text: 'Resend Email',
+              onPress: async () => {
+                try {
+                  await sendEmailVerification(user);
+                  Alert.alert('Email Sent', 'A new verification email has been sent to your address.');
+                } catch (resendError) {
+                  setError(resendError.message);
+                }
+              },
+            },
+            { text: 'OK', style: 'cancel' },
+          ]
+        );
+        // It's good practice to sign the user out if their email is not verified
+        await auth.signOut(); 
+      }
     } catch (err) {
       setError(err.message);
     }
@@ -27,6 +59,7 @@ const LoginScreen = ({ navigation }) => {
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
+        keyboardType="email-address"
       />
       <TextInput
         style={styles.input}
@@ -37,6 +70,9 @@ const LoginScreen = ({ navigation }) => {
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <Button title="Login" onPress={handleLogin} />
+      <TouchableOpacity onPress={() => router.push('/(auth)/RegistrationScreen')}>
+        <Text style={styles.link}>Don't have an account? Register</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -64,6 +100,11 @@ const styles = StyleSheet.create({
   error: {
     color: 'red',
     marginBottom: 16,
+  },
+  link: {
+    marginTop: 16,
+    color: 'blue',
+    textDecorationLine: 'underline',
   },
 });
 
