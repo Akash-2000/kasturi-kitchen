@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { signInWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
-import { auth } from '../services/firebase';
 import { useRouter } from 'expo-router';
+import { sendEmailVerification, signInWithEmailAndPassword } from 'firebase/auth';
+import React, { useState } from 'react';
+import { Alert, Button, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Colors } from '../../constants/theme';
+import { auth } from '../services/firebase';
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -20,7 +21,7 @@ const LoginScreen = () => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
+      console.log(user.email, "email" ,user.emailVerified)
       if (user.emailVerified) {
         // The root layout will handle the redirect to home automatically
       } else {
@@ -52,6 +53,7 @@ const LoginScreen = () => {
 
   return (
     <View style={styles.container}>
+      <Image source={require('../../assets/images/applogo.png')} style={styles.logo} />
       <Text style={styles.title}>Login</Text>
       <TextInput
         style={styles.input}
@@ -60,6 +62,7 @@ const LoginScreen = () => {
         onChangeText={setEmail}
         autoCapitalize="none"
         keyboardType="email-address"
+        placeholderTextColor="#888"
       />
       <TextInput
         style={styles.input}
@@ -67,9 +70,12 @@ const LoginScreen = () => {
         value={password}
         onChangeText={setPassword}
         secureTextEntry
+        placeholderTextColor="#888"
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Button title="Login" onPress={handleLogin} />
+      <View style={styles.buttonContainer}>
+        <Button title="Login" onPress={handleLogin} color={Colors.light.tint} />
+      </View>
       <TouchableOpacity onPress={() => router.push('/(auth)/RegistrationScreen')}>
         <Text style={styles.link}>Don't have an account? Register</Text>
       </TouchableOpacity>
@@ -82,29 +88,60 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    marginBottom: 30,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 24,
+    marginBottom: 25,
+    color: '#333',
   },
   input: {
-    width: '100%',
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
-    marginBottom: 16,
+    width: '90%',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginBottom: 20,
+    fontSize: 16,
+    color: '#333',
+    backgroundColor: '#fff',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.20,
+    shadowRadius: 1.41,
+    elevation: 2,
   },
   error: {
     color: 'red',
     marginBottom: 16,
+    textAlign: 'center',
+  },
+  buttonContainer: {
+    width: '90%',
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginBottom: 20,
+    backgroundColor: Colors.light.tint,
+   
+    padding:5,
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 3,
   },
   link: {
-    marginTop: 16,
-    color: 'blue',
+    marginTop: 15,
+    color: Colors.light.tint,
     textDecorationLine: 'underline',
+    fontSize: 14,
   },
 });
 

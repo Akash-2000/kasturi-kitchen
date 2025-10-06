@@ -1,4 +1,3 @@
-
 import { Slot, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "../context/AuthContext";
@@ -12,10 +11,9 @@ const InitialLayout = () => {
     if (!isLoaded) return;
 
     const inTabsGroup = segments[0] === "(tabs)";
-
-    if (user && !inTabsGroup) {
+    if (user && user.emailVerified && !inTabsGroup) {
       router.replace("(tabs)/HomeScreen");
-    } else if (!user) {
+    } else if (!user || !user.emailVerified) {
       router.replace("(auth)/LoginScreen");
     }
   }, [user, isLoaded]);
