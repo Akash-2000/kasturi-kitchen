@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getAnalytics, isSupported } from "firebase/analytics";
 import { getAuth, initializeAuth } from "firebase/auth";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
-import persistence from './firebasePersistence'; // This will automatically resolve to the correct file
+import { firebasePersistence } from './firebasePersistence'; // This will automatically resolve to the correct file
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -21,7 +21,7 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase Auth with persistence
 const auth = initializeAuth(app, {
-    persistence: persistence
+    persistence: firebasePersistence
 });
 
 const db = initializeFirestore(app, {

@@ -1,14 +1,12 @@
-
 import { useRouter } from 'expo-router';
 import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-import { Alert, Button, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Colors } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../services/firebase';
 
 // --- Development Flag ---
-// Set to `true` to disable the time restriction for testing.
-// Set to `false` for production.
 const IS_DEVELOPMENT_MODE = true;
 
 // --- Time Restriction Logic ---
@@ -19,11 +17,8 @@ const isBookingTimeActive = () => {
   const now = new Date();
   const hours = now.getHours();
   const minutes = now.getMinutes();
-
-  // Is the time between 12:00 AM and 7:30 AM?
   const isAfterMidnight = hours >= 0;
   const isBeforeSevenThirty = hours < 7 || (hours === 7 && minutes <= 30);
-
   return isAfterMidnight && isBeforeSevenThirty;
 };
 
@@ -34,11 +29,9 @@ const HomeScreen = () => {
   const router = useRouter();
 
   useEffect(() => {
-    // Optional: Re-check time periodically, though a single check on load is often enough.
     const interval = setInterval(() => {
       setIsBookingEnabled(isBookingTimeActive());
-    }, 60000); // Check every minute
-
+    }, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -60,7 +53,6 @@ const HomeScreen = () => {
         }
       }
     };
-
     fetchUserData();
   }, [user]);
 
@@ -73,7 +65,6 @@ const HomeScreen = () => {
       Alert.alert("Booking Closed", "Meal booking is only available between 12:00 AM and 7:30 AM.");
       return;
     }
-    
     if (!userData) {
       Alert.alert("Error", "User data not loaded yet.");
       return;
@@ -110,13 +101,16 @@ const HomeScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Button title="Logout" onPress={handleLogout} />
+        <Text style={styles.title}>Welcome to Avanttec</Text>
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+          <Text style={styles.logoutButtonText}>Logout</Text>
+        </TouchableOpacity>
       </View>
       <View style={styles.content}>
         {userData ? (
           <View style={styles.userDetails}>
             <Text style={styles.greeting}>Hello, {userData.firstName}!</Text>
-            <Text>Last Name: {userData.lastName}</Text>
+            <Text>Company Code: {userData.companyCode}</Text>
             <Text>Employee Code: {userData.employeeCode}</Text>
           </View>
         ) : (
@@ -127,9 +121,9 @@ const HomeScreen = () => {
           onPress={handleBookMeal}
           disabled={!isBookingEnabled}
         >
-          <Text style={styles.bookMealButtonText}>Book Meal</Text>
+          <Text style={styles.bookMealButtonText}>Book a Meal</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/AdminLoginScreen')}>
+        <TouchableOpacity onPress={() => router.push('/(auth)/AdminLoginScreen')}>
           <Text style={styles.adminLink}>Access Admin Panel</Text>
         </TouchableOpacity>
       </View>
@@ -140,12 +134,38 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f5f5f5',
   },
   header: {
-    position: 'absolute',
-    top: 40,
-    right: 20,
-    zIndex: 1,
+    backgroundColor: Colors.light.tint,
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  logoutButton: {
+    backgroundColor: 'white',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    elevation: 3,
+  },
+  logoutButtonText: {
+    color: Colors.light.tint,
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   content: {
     flex: 1,
@@ -166,13 +186,18 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'blue',
+    backgroundColor: Colors.light.tint,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   disabledButton: {
-    backgroundColor: 'grey',
+    backgroundColor: '#a9a9a9', // A darker grey for disabled state
   },
   bookMealButtonText: {
     color: 'white',
@@ -180,8 +205,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   adminLink: {
-    color: 'blue',
+    color: Colors.light.tint,
     textDecorationLine: 'underline',
+    marginTop: 20,
   },
 });
 

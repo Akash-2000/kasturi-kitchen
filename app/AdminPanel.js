@@ -1,10 +1,10 @@
-
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, Button, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, TouchableOpacity, Platform } from 'react-native';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from './services/firebase';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
+import { Colors } from '../constants/theme';
 
 const AdminPanel = () => {
   const [bookings, setBookings] = useState([]);
@@ -45,7 +45,7 @@ const AdminPanel = () => {
 
     const header = "Name,Employee Code,Company Code,Date,Time\n";
     const rows = bookings.map(b => 
-      `"${b.firstName} ${b.lastName}",${b.employeeCode},${b.companyCode},${b.mealDate},${b.mealTime}`
+      `\"${b.firstName} ${b.lastName}\",${b.employeeCode},${b.companyCode},${b.mealDate},${b.mealTime}`
     ).join("\n");
 
     const csvString = `${header}${rows}`;
@@ -78,7 +78,7 @@ const AdminPanel = () => {
   };
 
   if (loading) {
-    return <ActivityIndicator size="large" style={styles.loader} />;
+    return <ActivityIndicator size="large" color={Colors.light.tint} style={styles.loader} />;
   }
 
   const renderHeader = () => (
@@ -101,25 +101,29 @@ const AdminPanel = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>Today's Bookings</Text>
-          <Text style={styles.count}>Total: {bookings.length}</Text>
-        </View>
-        <Button title="Export" onPress={handleExport} />
+      <View style={styles.header}>
+        <Text style={styles.title}>Today's Bookings</Text>
+        <Text style={styles.count}>Total: {bookings.length}</Text>
       </View>
       
-      {bookings.length > 0 ? (
-        <FlatList
-          data={bookings}
-          ListHeaderComponent={renderHeader}
-          renderItem={renderBooking}
-          keyExtractor={item => item.id}
-          style={styles.table}
-        />
-      ) : (
-        <Text style={styles.noBookingsText}>No meals booked for today.</Text>
-      )}
+      <View style={styles.listContainer}>
+        {bookings.length > 0 ? (
+          <>
+            <TouchableOpacity style={styles.exportButton} onPress={handleExport}>
+              <Text style={styles.exportButtonText}>Export as CSV</Text>
+            </TouchableOpacity>
+            <FlatList
+              data={bookings}
+              ListHeaderComponent={renderHeader}
+              renderItem={renderBooking}
+              keyExtractor={item => item.id}
+              style={styles.table}
+            />
+          </>
+        ) : (
+          <Text style={styles.noBookingsText}>No meals booked for today.</Text>
+        )}
+      </View>
     </View>
   );
 };
@@ -127,31 +131,55 @@ const AdminPanel = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 15,
     backgroundColor: '#f5f5f5',
   },
-  headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  titleContainer: {
-    flex: 1,
+  header: {
+    backgroundColor: Colors.light.tint,
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'normal',
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: 'white',
   },
   count: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: 4, 
+    fontSize: 18,
+    color: 'white',
+    marginTop: 5,
   },
   loader: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  listContainer: {
+    flex: 1,
+    padding: 20,
+  },
+  exportButton: {
+    backgroundColor: Colors.light.tint,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+  },
+  exportButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   table: {
     backgroundColor: 'white',
@@ -159,10 +187,10 @@ const styles = StyleSheet.create({
   },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    paddingVertical: 15,
+    paddingHorizontal: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#f0f0f0',
     alignItems: 'center',
   },
   tableHeader: {
@@ -192,6 +220,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 18,
     marginTop: 50,
+    color: '#888',
   },
 });
 

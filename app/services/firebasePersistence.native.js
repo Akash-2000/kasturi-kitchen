@@ -1,7 +1,5 @@
-
 import { getReactNativePersistence } from 'firebase/auth';
-import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const persistence = getReactNativePersistence(ReactNativeAsyncStorage);
+export const firebasePersistence = getReactNativePersistence(AsyncStorage);
 
-export default persistence;
