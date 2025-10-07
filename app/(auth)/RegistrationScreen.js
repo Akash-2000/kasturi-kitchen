@@ -89,12 +89,8 @@ const RegistrationScreen = () => {
       keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
     >
       <ScrollView
-        contentContainerStyle={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          padding: 10,
-        }}
+        contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.title}>REGISTER</Text>
         <TextInput
@@ -175,18 +171,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
   },
   container: {
-    flexGrow: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 10,
-    backgroundColor: "#f5f5f5",
-    ...(Platform.OS === "web" && {
-      paddingHorizontal: "10%",
-    }),
-    ...(Platform.OS !== "web" && {
-      paddingHorizontal: 20,
-    }),
-  },
+  padding: 20,
+   flexGrow: 1,
+  paddingBottom: 10, 
+  alignItems: "center",
+  backgroundColor: "#f5f5f5",
+},
   logo: {
     width: 120,
     height: 120,
@@ -196,6 +186,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "bold",
     marginBottom: 25,
+    marginTop:60,
     color: "#333",
   },
   input: {

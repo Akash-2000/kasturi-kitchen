@@ -3,7 +3,8 @@ import {
   sendEmailVerification,
   signInWithEmailAndPassword,
 } from "firebase/auth";
-import { useState } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { useState , useEffect} from "react";
 import {
   Alert,
   Button,
@@ -19,12 +20,24 @@ import {
 } from "react-native";
 import { Colors } from "../../constants/theme";
 import { auth } from "../services/firebase";
+import LoadingScreen from "../../components/LoadingScreen";
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
+
+  const { user, isUserLoggedIn, isLoaded, storeLoaded } = useAuth();
+  useEffect(() => {
+    if (isUserLoggedIn) {
+      router.replace('/(tabs)/HomeScreen');
+    }
+  }, [isUserLoggedIn]);
+
+  if (!isLoaded || !storeLoaded) {
+    return <LoadingScreen/>; // fallback in case layout didn't catch it
+  }
 
   const handleLogin = async () => {
     if (!email || !password) {

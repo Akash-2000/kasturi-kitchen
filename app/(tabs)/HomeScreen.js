@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator,Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../services/firebase';
@@ -26,6 +26,7 @@ const HomeScreen = () => {
   const { user, logout } = useAuth();
   const [userData, setUserData] = useState(null);
   const [isBookingEnabled, setIsBookingEnabled] = useState(isBookingTimeActive());
+   const [isLoading, setIsLoading] = useState(false); 
   const router = useRouter();
 
   useEffect(() => {
@@ -77,6 +78,7 @@ const HomeScreen = () => {
     const q = query(bookingsRef, where("employeeCode", "==", userData.employeeCode), where("mealDate", "==", todayDateString));
 
     try {
+       setIsLoading(true); 
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
         Alert.alert("Already Booked", "You have already booked a meal for today.");
@@ -95,6 +97,10 @@ const HomeScreen = () => {
     } catch (error) {
       console.error("Error booking meal:", error);
       Alert.alert("Error", "There was an error booking your meal.");
+    } finally{
+    
+      setIsLoading(false); // ✅ Always stop loading
+    
     }
   };
 
@@ -117,11 +123,15 @@ const HomeScreen = () => {
           <Text>Loading user data...</Text>
         )}
         <TouchableOpacity 
-          style={[styles.bookMealButton, !isBookingEnabled && styles.disabledButton]}
+          style={[styles.bookMealButton, (!isBookingEnabled || isLoading) && styles.disabledButton]}
           onPress={handleBookMeal}
-          disabled={!isBookingEnabled}
+          disabled={!isBookingEnabled|| isLoading}
         >
-          <Text style={styles.bookMealButtonText}>Book a Meal</Text>
+          {isLoading ? (
+            <ActivityIndicator size="large" color="#fff" />
+          ) : (
+            <Text style={styles.bookMealButtonText}>Book a Meal</Text>
+          )}
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.push('/(auth)/AdminLoginScreen')}>
           <Text style={styles.adminLink}>Access Admin Panel</Text>
