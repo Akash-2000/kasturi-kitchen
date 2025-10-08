@@ -30,6 +30,7 @@ const RegistrationScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [companyCode, setCompanyCode] = useState("ALP");
+  const[loading, setLoading] = useState(false);
   const { logout } = useAuth();
   const router = useRouter();
 
@@ -47,6 +48,7 @@ const RegistrationScreen = () => {
     }
 
     try {
+      setLoading(true)
       // Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -74,11 +76,13 @@ const RegistrationScreen = () => {
       });
 
       // Logout the user and navigate to login
+      setLoading(false)
       await logout();
       router.replace("/(auth)/LoginScreen");
     } catch (error) {
       console.error("Registration Error:", error);
       Alert.alert("Registration Error", error.message);
+      setLoading(false)
     }
   };
 
@@ -92,7 +96,7 @@ const RegistrationScreen = () => {
         contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>REGISTER</Text>
+        <Text style={styles.title}>Register</Text>
         <TextInput
           style={styles.input}
           placeholder="First Name"
@@ -152,9 +156,10 @@ const RegistrationScreen = () => {
         </View>
         <View style={styles.buttonContainer}>
           <Button
-            title="Register"
+            title={loading? "Registering...":"Register"}
             onPress={handleRegister}
             color={Colors.light.tint}
+            disabled={loading}
           />
         </View>
         <TouchableOpacity onPress={() => router.push("/(auth)/LoginScreen")}>
@@ -232,7 +237,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginBottom: 20,
     backgroundColor: Colors.light.tint,
-    padding: 5,
+    // padding: 5,
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 3,

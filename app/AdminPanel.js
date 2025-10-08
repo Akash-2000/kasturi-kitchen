@@ -22,35 +22,27 @@ const AdminPanel = () => {
     return grouped;
   };
 
+
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const sectionedBookings = [
-          {
-            title: 'ALP',
-            data: Array.from({ length: 10 }, (_, i) => ({
-              id: `ALP-${i}`,
-              companyCode: 'ALP',
-              employeeCode: `ALP/25/0${i}`,
-              firstName: `Albert${i}`,
-              lastName: 'Einstein',
-              mealDate: '2025-10-08',
-              mealTime: `10:5${i}:00`,
-            }))
-          },
-          {
-            title: 'AMS',
-            data: Array.from({ length: 10 }, (_, i) => ({
-              id: `AMS-${i}`,
-              companyCode: 'AMS',
-              employeeCode: `AMS1234${i}`,
-              firstName: `Sury${i}`,
-              lastName: 'Elango',
-              mealDate: '2025-10-08',
-              mealTime: `10:4${i}:30`,
-            }))
-          }
-        ];
+        const today = new Date();
+        const todayDateString = today.toISOString().split('T')[0];
+
+        const bookingsRef = collection(db, "mealBookings");
+        const q = query(bookingsRef, where("mealDate", "==", todayDateString));
+
+        const querySnapshot = await getDocs(q);
+        const bookingsData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        
+        const groupedBookings = groupByCompany(bookingsData);
+        const sectionedBookings = Object.keys(groupedBookings).map((companyCode) => ({
+          title: companyCode,
+          data: groupedBookings[companyCode],
+        }));
         setBookings(sectionedBookings);
       } catch (error) {
         console.error("Error fetching bookings:", error);
@@ -81,7 +73,7 @@ const AdminPanel = () => {
       {/* Header Section */}
       <View style={styles.header}>
         <Text style={styles.title}>Today's Bookings</Text>
-        <Text style={styles.count}>Total: {bookings?.length}</Text>
+        <Text style={styles.count}>Total: {bookings?.reduce((sum, item) => sum + item?.data?.length, 0)}</Text>
       </View>
 
       {/* Scrollable Main Area */}

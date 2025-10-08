@@ -25,7 +25,6 @@ const isBookingTimeActive = () => {
 
 const HomeScreen = () => {
   const { user, logout } = useAuth();
-  console.log(user, "my user")
   const [userData, setUserData] = useState(null);
   const [isBookingEnabled, setIsBookingEnabled] = useState(isBookingTimeActive());
   const [isAdmin, setIsAdmin] = useState(false)
@@ -42,9 +41,7 @@ const HomeScreen = () => {
 
   async function checkIsAdmin(uid) {
     if (!uid) return false;  // Not logged in
-    console.log(uid, "userID")
     const adminDoc = await getDoc(doc(db, "admins", uid));
-    console.log(adminDoc.exists())
     return adminDoc.exists();  // true if admin, else false
   }
 
@@ -137,6 +134,7 @@ const HomeScreen = () => {
             <Text style={styles.greeting}>Hello, {userData.firstName}!</Text>
             <Text>Company Code: {userData.companyCode}</Text>
             <Text>Employee Code: {userData.employeeCode}</Text>
+            <Text style={styles.bookingTiming}>Booking Timing: 12:00 AM - 7:30 AM</Text>
           </View>
         ) : (
           <Text>Loading user data...</Text>
@@ -190,6 +188,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     borderRadius: 20,
     elevation: 3,
+  },
+  bookingTiming: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#444',
+    fontWeight: '500',
   },
   logoutButtonText: {
     color: Colors.light.tint,

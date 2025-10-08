@@ -8,7 +8,6 @@ const InitialLayout = () => {
   const { user, isLoaded, isUserLoggedIn, storeLoaded } = useAuth();
   const segments = useSegments();
   const router = useRouter();
-  console.log(user, segments, "my segments")
   useEffect(() => {
     if (!isLoaded || !storeLoaded) return;
     if(isUserLoggedIn){

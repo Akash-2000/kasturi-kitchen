@@ -4,12 +4,13 @@ import {
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import { useAuth } from "../../context/AuthContext";
-import { useState , useEffect} from "react";
+import { useState, useEffect } from "react";
 import {
   Alert,
   Button,
   Image,
   KeyboardAvoidingView,
+  ActivityIndicator,
   Platform,
   ScrollView,
   StyleSheet,
@@ -21,10 +22,12 @@ import {
 import { Colors } from "../../constants/theme";
 import { auth } from "../services/firebase";
 import LoadingScreen from "../../components/LoadingScreen";
+import { isLoading } from "expo-font";
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
 
@@ -36,7 +39,7 @@ const LoginScreen = () => {
   }, [isUserLoggedIn]);
 
   if (!isLoaded || !storeLoaded) {
-    return <LoadingScreen/>; // fallback in case layout didn't catch it
+    return <LoadingScreen />; // fallback in case layout didn't catch it
   }
 
   const handleLogin = async () => {
@@ -46,6 +49,7 @@ const LoginScreen = () => {
     }
 
     try {
+      setLoading(true)
       const userCredential = await signInWithEmailAndPassword(
         auth,
         email,
@@ -79,9 +83,13 @@ const LoginScreen = () => {
         );
         // It's good practice to sign the user out if their email is not verified
         await auth.signOut();
+        setLoading(false)
       }
+      setLoading(false)
     } catch (err) {
       setError(err.message);
+      setLoading(false)
+
     }
   };
 
@@ -123,11 +131,12 @@ const LoginScreen = () => {
         />
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <View style={styles.buttonContainer}>
-          <Button
-            title="Login"
-            onPress={handleLogin}
-            color={Colors.light.tint}
-          />
+            <Button
+              title={loading ? "Logging in..." : "Login"}
+              onPress={handleLogin}
+              color={Colors.light.tint}
+              disabled={loading}
+            />
         </View>
         <TouchableOpacity
           onPress={() => router.push("/(auth)/RegistrationScreen")}
