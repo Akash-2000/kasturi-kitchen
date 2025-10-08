@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
-import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { addDoc, collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator,Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Colors } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../services/firebase';
+import LoadingScreen from '../../components/LoadingScreen';
 
 // --- Development Flag ---
 const IS_DEVELOPMENT_MODE = true;
@@ -24,9 +25,12 @@ const isBookingTimeActive = () => {
 
 const HomeScreen = () => {
   const { user, logout } = useAuth();
+  console.log(user, "my user")
   const [userData, setUserData] = useState(null);
   const [isBookingEnabled, setIsBookingEnabled] = useState(isBookingTimeActive());
-   const [isLoading, setIsLoading] = useState(false); 
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [isLoading, setIsLoading] = useState(false);
+  const [BookMealLoading, setBookMealLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -36,12 +40,25 @@ const HomeScreen = () => {
     return () => clearInterval(interval);
   }, []);
 
+  async function checkIsAdmin(uid) {
+    if (!uid) return false;  // Not logged in
+    console.log(uid, "userID")
+    const adminDoc = await getDoc(doc(db, "admins", uid));
+    console.log(adminDoc.exists())
+    return adminDoc.exists();  // true if admin, else false
+  }
+
+
+
   useEffect(() => {
     const fetchUserData = async () => {
       if (user) {
         try {
+          setIsLoading(true)
           const q = query(collection(db, 'employees'), where('uid', '==', user.uid));
           const querySnapshot = await getDocs(q);
+          const userIsAdmin = await checkIsAdmin(user.uid)
+          setIsAdmin(userIsAdmin)
           if (!querySnapshot.empty) {
             const doc = querySnapshot.docs[0];
             setUserData(doc.data());
@@ -51,6 +68,8 @@ const HomeScreen = () => {
         } catch (error) {
           console.error("Error fetching user data:", error);
           Alert.alert("Error", "Could not fetch user data.");
+        } finally {
+          setIsLoading(false)
         }
       }
     };
@@ -78,7 +97,7 @@ const HomeScreen = () => {
     const q = query(bookingsRef, where("employeeCode", "==", userData.employeeCode), where("mealDate", "==", todayDateString));
 
     try {
-       setIsLoading(true); 
+      setBookMealLoading(true);
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
         Alert.alert("Already Booked", "You have already booked a meal for today.");
@@ -97,10 +116,10 @@ const HomeScreen = () => {
     } catch (error) {
       console.error("Error booking meal:", error);
       Alert.alert("Error", "There was an error booking your meal.");
-    } finally{
-    
-      setIsLoading(false); // ✅ Always stop loading
-    
+    } finally {
+
+      setBookMealLoading(false); // ✅ Always stop loading
+
     }
   };
 
@@ -112,7 +131,7 @@ const HomeScreen = () => {
           <Text style={styles.logoutButtonText}>Logout</Text>
         </TouchableOpacity>
       </View>
-      <View style={styles.content}>
+      {isLoading ? <LoadingScreen /> : <View style={styles.content}>
         {userData ? (
           <View style={styles.userDetails}>
             <Text style={styles.greeting}>Hello, {userData.firstName}!</Text>
@@ -122,21 +141,21 @@ const HomeScreen = () => {
         ) : (
           <Text>Loading user data...</Text>
         )}
-        <TouchableOpacity 
-          style={[styles.bookMealButton, (!isBookingEnabled || isLoading) && styles.disabledButton]}
+        <TouchableOpacity
+          style={[styles.bookMealButton, (!isBookingEnabled || BookMealLoading) && styles.disabledButton]}
           onPress={handleBookMeal}
-          disabled={!isBookingEnabled|| isLoading}
+          disabled={!isBookingEnabled || BookMealLoading}
         >
-          {isLoading ? (
+          {BookMealLoading ? (
             <ActivityIndicator size="large" color="#fff" />
           ) : (
             <Text style={styles.bookMealButtonText}>Book a Meal</Text>
           )}
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/(auth)/AdminLoginScreen')}>
+        {isAdmin && <TouchableOpacity onPress={() => router.push('/AdminPanel')}>
           <Text style={styles.adminLink}>Access Admin Panel</Text>
-        </TouchableOpacity>
-      </View>
+        </TouchableOpacity>}
+      </View>}
     </View>
   );
 };
