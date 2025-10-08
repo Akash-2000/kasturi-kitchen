@@ -5,47 +5,52 @@ import { db } from './services/firebase';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import { Colors } from '../constants/theme';
-
 import { exportBookingsAsCSV } from '../utils/exportToCSV';
+import MealTable from '../components/MealTable';
 
 const AdminPanel = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const groupByCompany = (bookingsArray) => {
     const grouped = {};
-
     bookingsArray.forEach(booking => {
       const company = booking.companyCode || 'Unknown';
-      console.log(company, "company")
-      console.log(!grouped[company], "company")
-      if (!grouped[company]) {
-        grouped[company] = [];
-      }
+      if (!grouped[company]) grouped[company] = [];
       grouped[company].push(booking);
     });
-    return grouped
-  }
+    return grouped;
+  };
+
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const today = new Date();
-        const todayDateString = today.toISOString().split('T')[0];
-
-        const bookingsRef = collection(db, "mealBookings");
-        const q = query(bookingsRef, where("mealDate", "==", todayDateString));
-
-        const querySnapshot = await getDocs(q);
-        const bookingsData = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        console.log(bookingsData, "bookingsData")
-        const groupedBookings = groupByCompany(bookingsData);
-        const sectionedBookings = Object.keys(groupedBookings).map((companyCode) => ({
-          title: companyCode,
-          data: groupedBookings[companyCode],
-        }));
-        console.log(sectionedBookings, "sectionedBookings")
+        const sectionedBookings = [
+          {
+            title: 'ALP',
+            data: Array.from({ length: 10 }, (_, i) => ({
+              id: `ALP-${i}`,
+              companyCode: 'ALP',
+              employeeCode: `ALP/25/0${i}`,
+              firstName: `Albert${i}`,
+              lastName: 'Einstein',
+              mealDate: '2025-10-08',
+              mealTime: `10:5${i}:00`,
+            }))
+          },
+          {
+            title: 'AMS',
+            data: Array.from({ length: 10 }, (_, i) => ({
+              id: `AMS-${i}`,
+              companyCode: 'AMS',
+              employeeCode: `AMS1234${i}`,
+              firstName: `Sury${i}`,
+              lastName: 'Elango',
+              mealDate: '2025-10-08',
+              mealTime: `10:4${i}:30`,
+            }))
+          }
+        ];
         setBookings(sectionedBookings);
       } catch (error) {
         console.error("Error fetching bookings:", error);
@@ -54,56 +59,16 @@ const AdminPanel = () => {
         setLoading(false);
       }
     };
-
     fetchBookings();
   }, []);
-
-  const handleExport = async () => {
-    if (bookings.length === 0) {
-      Alert.alert("No Data", "There is no data to export.");
-      return;
-    }
-
-    const header = "Name,Employee Code,Company Code,Date,Time\n";
-    const rows = bookings.map(b =>
-      `\"${b.firstName} ${b.lastName}\",${b.employeeCode},${b.companyCode},${b.mealDate},${b.mealTime}`
-    ).join("\n");
-
-    const csvString = `${header}${rows}`;
-
-    if (Platform.OS === 'web') {
-      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'meal_bookings.csv');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else {
-      try {
-        const fileUri = FileSystem.documentDirectory + 'meal_bookings.csv';
-        await FileSystem.writeAsStringAsync(fileUri, csvString, {
-          encoding: FileSystem.EncodingType.UTF8,
-        });
-
-        await Sharing.shareAsync(fileUri, {
-          mimeType: 'text/csv',
-          dialogTitle: 'Export Meal Bookings',
-        });
-      } catch (error) {
-        console.error("Error exporting data:", error);
-        Alert.alert("Export Error", "An error occurred while exporting the data.");
-      }
-    }
-  };
 
   if (loading) {
     return <ActivityIndicator size="large" color={Colors.light.tint} style={styles.loader} />;
   }
 
   const renderHeader = () => (
-    <View style={styles.tableRow}>
+    <View style={[styles.tableRow, styles.headerRow]}>
+      <Text style={[styles.tableHeader, styles.snoCol]}>S.no</Text>
       <Text style={[styles.tableHeader, styles.nameCol]}>Name</Text>
       <Text style={[styles.tableHeader, styles.empCodeCol]}>Emp. Code</Text>
       <Text style={[styles.tableHeader, styles.dateCol]}>Date</Text>
@@ -113,35 +78,55 @@ const AdminPanel = () => {
 
   return (
     <View style={styles.container}>
+      {/* Header Section */}
       <View style={styles.header}>
         <Text style={styles.title}>Today's Bookings</Text>
         <Text style={styles.count}>Total: {bookings?.length}</Text>
       </View>
 
-      <View style={styles.listContainer}>
+      {/* Scrollable Main Area */}
+      <ScrollView style={styles.listContainer}>
         {bookings?.length > 0 ? (
           <>
-            <TouchableOpacity style={styles.exportButton} onPress={()=>exportBookingsAsCSV(bookings)}>
+            <TouchableOpacity
+              style={styles.exportButton}
+              onPress={() => exportBookingsAsCSV(bookings)}
+            >
               <Text style={styles.exportButtonText}>Export as CSV</Text>
             </TouchableOpacity>
 
+            {/* Table for each Company */}
             {bookings.map((section) => (
               <View key={section.title} style={styles.sectionContainer}>
-                <Text style={[styles.tableCell, styles.tableHeader]}>Company Code: {section.title}</Text>
+                <Text style={styles.sectionTitle}>Company Code: {section.title}</Text>
 
-                <ScrollView horizontal>
-                  <View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.tableContainer}>
                     {/* Header */}
                     {renderHeader()}
 
-                    {/* Rows */}
-                    {section.data.map((item) => (
-                      <View style={styles.tableRow} key={item.id}>
-                        <Text style={styles.tableCell}>{item.employeeCode}</Text>
-                        <Text style={styles.tableCell}>{item.firstName} {item.lastName}</Text>
-                        <Text style={styles.tableCell}>{item.mealDate}</Text>
-                        <Text style={styles.tableCell}>{item.mealTime}</Text>
-                        {/* Match columns here too */}
+                    {/* Data Rows */}
+                    {section.data.map((item, index) => (
+                      <View
+                        style={[
+                          styles.tableRow,
+                          index % 2 === 0 ? styles.evenRow : styles.oddRow,
+                        ]}
+                        key={item.id}
+                      >
+                        <Text style={[styles.tableCell, styles.snoCol]}>{index + 1}</Text>
+                        <Text style={[styles.tableCell, styles.nameCol]}>
+                          {item.firstName} {item.lastName}
+                        </Text>
+                        <Text style={[styles.tableCell, styles.empCodeCol]}>
+                          {item.employeeCode}
+                        </Text>
+                        <Text style={[styles.tableCell, styles.dateCol]}>
+                          {item.mealDate}
+                        </Text>
+                        <Text style={[styles.tableCell, styles.timeCol]}>
+                          {item.mealTime}
+                        </Text>
                       </View>
                     ))}
                   </View>
@@ -149,114 +134,122 @@ const AdminPanel = () => {
               </View>
             ))}
 
+            {/* Summary Table */}
+            <MealTable mealBooking={bookings} />
           </>
         ) : (
           <Text style={styles.noBookingsText}>No meals booked for today.</Text>
         )}
-      </View>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
+  container: { flex: 1, backgroundColor: '#f8f9fb' },
+
   header: {
     backgroundColor: Colors.light.tint,
     paddingTop: 60,
-    paddingBottom: 20,
+    paddingBottom: 25,
     paddingHorizontal: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 5,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  count: {
-    fontSize: 18,
-    color: 'white',
-    marginTop: 5,
-  },
-  loader: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  listContainer: {
-    flex: 1,
-    padding: 20,
-  },
+  title: { fontSize: 28, fontWeight: 'bold', color: '#fff' },
+  count: { fontSize: 18, color: '#f0f0f0', marginTop: 5 },
+
+  loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  listContainer: { flex: 1, padding: 18 },
+
   exportButton: {
     backgroundColor: Colors.light.tint,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 20,
-    elevation: 3,
+    marginBottom: 25,
     shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  exportButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+
+  sectionContainer: {
+    // backgroundColor: '#fff',
+    borderRadius: 12,
+    // padding: 14,
+    marginBottom: 25,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
   },
-  exportButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  table: {
-    backgroundColor: 'white',
-    borderRadius: 8,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 15,
-    paddingHorizontal: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    alignItems: 'center',
-  },
-  tableHeader: {
-    fontSize: 14,
+  sectionTitle: {
     fontWeight: 'bold',
     color: '#333',
+    fontSize: 16,
+    marginBottom: 14,
+    marginLeft: 6,
   },
-  tableCell: {
-    fontSize: 14,
-    color: '#555',
-    padding: 5
+
+  tableContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
-  nameCol: {
-    flex: 2.5,
+
+  tableRow: {
+    flexDirection: 'row',
+    paddingVertical: 14, // increased from 12 → 14
+    paddingHorizontal: 14, // increased from 10 → 14
+    borderBottomWidth: 1,
+    borderColor: '#eee',
+    alignItems: 'center',
+    minHeight: 50, // ensures better row height
   },
-  empCodeCol: {
-    flex: 1.5,
+
+  headerRow: {
+    backgroundColor: '#f1f3f5',
+    borderBottomWidth: 2,
+    borderColor: '#d0d0d0',
   },
-  dateCol: {
-    flex: 2,
+
+  tableHeader: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#333',
     textAlign: 'center',
   },
-  timeCol: {
-    flex: 1.5,
-    textAlign: 'right',
+
+  tableCell: {
+    fontSize: 15,
+    color: '#444',
+    textAlign: 'center',
+    paddingHorizontal: 6, // inner spacing for better text separation
   },
+
+  snoCol: { flex: 0.8 },
+  nameCol: { flex: 2.2, textAlign: 'left' },
+  empCodeCol: { flex: 1.6 },
+  dateCol: { flex: 1.5 },
+  timeCol: { flex: 1.5 },
+
+  evenRow: { backgroundColor: '#fafafa' },
+  oddRow: { backgroundColor: '#fff' },
+
   noBookingsText: {
     textAlign: 'center',
     fontSize: 18,
     marginTop: 50,
     color: '#888',
   },
-  horizontalList: {
-    columnGap: 12, // Only works in React Native 0.71+
-  }
-
 });
 
 export default AdminPanel;

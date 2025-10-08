@@ -30,21 +30,43 @@ export async function exportBookingsAsCSV(sections) {
       rows.push(''); // Empty line for spacing between sections
     });
 
-    // Total row
-    rows.push(`Total Bookings: ${totalCount}`);
+    // -----------------------------------------
+    // 📊 Add MEAL COUNT SUMMARY SECTION
+    // -----------------------------------------
+    rows.push('');
+    rows.push('TOTAL MEAL SUMMARY');
+    rows.push('Company Code,Meal Count');
 
-    // CSV string
+    // Calculate meal counts
+    const mealData = sections.map(section => ({
+      companyCode: section.title,
+      mealCount: section.data.length,
+    }));
+
+    // Add each company meal count
+    mealData.forEach(item => {
+      rows.push(`${item.companyCode},${item.mealCount}`);
+    });
+
+    // Add final total row
+    const total = mealData.reduce((sum, item) => sum + item.mealCount, 0);
+    rows.push('');
+    rows.push(`Total Bookings,${total}`);
+
+    // -----------------------------------------
+    // Write CSV file
+    // -----------------------------------------
     const csvString = rows.join('\n');
-
-    // Save file
     const fileName = `bookings_${Date.now()}.csv`;
     const fileUri = FileSystem.cacheDirectory + fileName;
 
     await FileSystem.writeAsStringAsync(fileUri, csvString, {
-      encoding:   'utf8',
+      encoding: 'utf8',
     });
 
-    // Share the file
+    // -----------------------------------------
+    // Share file
+    // -----------------------------------------
     if (await Sharing.isAvailableAsync()) {
       await Sharing.shareAsync(fileUri, {
         mimeType: 'text/csv',
