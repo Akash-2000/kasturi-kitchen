@@ -1,15 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, Alert, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Alert, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from './services/firebase';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import { Colors } from '../constants/theme';
 
+import { exportBookingsAsCSV } from '../utils/exportToCSV';
+
 const AdminPanel = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const groupByCompany = (bookingsArray) => {
+    const grouped = {};
 
+    bookingsArray.forEach(booking => {
+      const company = booking.companyCode || 'Unknown';
+      console.log(company, "company")
+      console.log(!grouped[company], "company")
+      if (!grouped[company]) {
+        grouped[company] = [];
+      }
+      grouped[company].push(booking);
+    });
+    return grouped
+  }
   useEffect(() => {
     const fetchBookings = async () => {
       try {
@@ -24,8 +39,14 @@ const AdminPanel = () => {
           id: doc.id,
           ...doc.data(),
         }));
-
-        setBookings(bookingsData);
+        console.log(bookingsData, "bookingsData")
+        const groupedBookings = groupByCompany(bookingsData);
+        const sectionedBookings = Object.keys(groupedBookings).map((companyCode) => ({
+          title: companyCode,
+          data: groupedBookings[companyCode],
+        }));
+        console.log(sectionedBookings, "sectionedBookings")
+        setBookings(sectionedBookings);
       } catch (error) {
         console.error("Error fetching bookings:", error);
         Alert.alert("Error", "Could not fetch meal bookings.");
@@ -44,7 +65,7 @@ const AdminPanel = () => {
     }
 
     const header = "Name,Employee Code,Company Code,Date,Time\n";
-    const rows = bookings.map(b => 
+    const rows = bookings.map(b =>
       `\"${b.firstName} ${b.lastName}\",${b.employeeCode},${b.companyCode},${b.mealDate},${b.mealTime}`
     ).join("\n");
 
@@ -90,35 +111,44 @@ const AdminPanel = () => {
     </View>
   );
 
-  const renderBooking = ({ item }) => (
-    <View style={styles.tableRow}>
-      <Text style={[styles.tableCell, styles.nameCol]}>{item.firstName} {item.lastName}</Text>
-      <Text style={[styles.tableCell, styles.empCodeCol]}>{item.employeeCode}</Text>
-      <Text style={[styles.tableCell, styles.dateCol]}>{item.mealDate}</Text>
-      <Text style={[styles.tableCell, styles.timeCol]}>{item.mealTime}</Text>
-    </View>
-  );
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Today's Bookings</Text>
-        <Text style={styles.count}>Total: {bookings.length}</Text>
+        <Text style={styles.count}>Total: {bookings?.length}</Text>
       </View>
-      
+
       <View style={styles.listContainer}>
-        {bookings.length > 0 ? (
+        {bookings?.length > 0 ? (
           <>
-            <TouchableOpacity style={styles.exportButton} onPress={handleExport}>
+            <TouchableOpacity style={styles.exportButton} onPress={()=>exportBookingsAsCSV(bookings)}>
               <Text style={styles.exportButtonText}>Export as CSV</Text>
             </TouchableOpacity>
-            <FlatList
-              data={bookings}
-              ListHeaderComponent={renderHeader}
-              renderItem={renderBooking}
-              keyExtractor={item => item.id}
-              style={styles.table}
-            />
+
+            {bookings.map((section) => (
+              <View key={section.title} style={styles.sectionContainer}>
+                <Text style={[styles.tableCell, styles.tableHeader]}>Company Code: {section.title}</Text>
+
+                <ScrollView horizontal>
+                  <View>
+                    {/* Header */}
+                    {renderHeader()}
+
+                    {/* Rows */}
+                    {section.data.map((item) => (
+                      <View style={styles.tableRow} key={item.id}>
+                        <Text style={styles.tableCell}>{item.employeeCode}</Text>
+                        <Text style={styles.tableCell}>{item.firstName} {item.lastName}</Text>
+                        <Text style={styles.tableCell}>{item.mealDate}</Text>
+                        <Text style={styles.tableCell}>{item.mealTime}</Text>
+                        {/* Match columns here too */}
+                      </View>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            ))}
+
           </>
         ) : (
           <Text style={styles.noBookingsText}>No meals booked for today.</Text>
@@ -201,6 +231,7 @@ const styles = StyleSheet.create({
   tableCell: {
     fontSize: 14,
     color: '#555',
+    padding: 5
   },
   nameCol: {
     flex: 2.5,
@@ -222,6 +253,10 @@ const styles = StyleSheet.create({
     marginTop: 50,
     color: '#888',
   },
+  horizontalList: {
+    columnGap: 12, // Only works in React Native 0.71+
+  }
+
 });
 
 export default AdminPanel;
