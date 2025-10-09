@@ -8,7 +8,7 @@ import { db } from '../services/firebase';
 import LoadingScreen from '../../components/LoadingScreen';
 
 // --- Development Flag ---
-const IS_DEVELOPMENT_MODE = true;
+const IS_DEVELOPMENT_MODE = false;
 
 // --- Time Restriction Logic ---
 const isBookingTimeActive = () => {
@@ -84,6 +84,10 @@ const HomeScreen = () => {
     }
     if (!userData) {
       Alert.alert("Error", "User data not loaded yet.");
+      return;
+    }
+    if (isBookingTimeActive()) {
+      Alert.alert("Booking Closed", "Meal booking is only available between 12:00 AM and 7:30 AM.");
       return;
     }
 
