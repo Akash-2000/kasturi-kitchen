@@ -1,33 +1,67 @@
-import { useRouter } from 'expo-router';
-import { addDoc, collection, getDocs, doc, getDoc, query, where } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Colors } from '../../constants/theme';
-import { useAuth } from '../../context/AuthContext';
-import { db } from '../services/firebase';
-import LoadingScreen from '../../components/LoadingScreen';
+import { useRouter } from "expo-router";
+import {
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import LoadingScreen from "../../components/LoadingScreen";
+import { Colors } from "../../constants/theme";
+import { useAuth } from "../../context/AuthContext";
+import { db } from "../services/firebase";
 
 // --- Development Flag ---
 const IS_DEVELOPMENT_MODE = false;
 
 // --- Time Restriction Logic ---
+// const isBookingTimeActive = () => {
+//   if (IS_DEVELOPMENT_MODE) {
+//     return true; // Always allow booking in development mode
+//   }
+
+//   const now = new Date();
+//   const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+//   const startMinutes = 0;         // 12:00 AM
+//   const endMinutes = 7 * 60 + 30; // 7:30 AM
+//   // Booking active if time is between 12:00 AM and 7:30 AM
+//   return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+// };
+
 const isBookingTimeActive = () => {
   if (IS_DEVELOPMENT_MODE) {
     return true; // Always allow booking in development mode
   }
+
   const now = new Date();
-  const hours = now.getHours();
-  const minutes = now.getMinutes();
-  const isAfterMidnight = hours >= 0;
-  const isBeforeSevenThirty = hours < 7 || (hours === 7 && minutes <= 30);
-  return isAfterMidnight && isBeforeSevenThirty;
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const startMinutes = 0; // 12:00 AM
+  const endMinutes = 7 * 60 + 30; // 7:30 AM
+  console.log("startMinutes", startMinutes, "endMinutes", endMinutes);
+  // Booking active if time is between 12:00 AM and 7:30 AM
+  return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
 };
 
 const HomeScreen = () => {
   const { user, logout } = useAuth();
   const [userData, setUserData] = useState(null);
-  const [isBookingEnabled, setIsBookingEnabled] = useState(isBookingTimeActive());
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [isBookingEnabled, setIsBookingEnabled] = useState(
+    isBookingTimeActive()
+  );
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [BookMealLoading, setBookMealLoading] = useState(false);
   const router = useRouter();
@@ -40,22 +74,23 @@ const HomeScreen = () => {
   }, []);
 
   async function checkIsAdmin(uid) {
-    if (!uid) return false;  // Not logged in
+    if (!uid) return false; // Not logged in
     const adminDoc = await getDoc(doc(db, "admins", uid));
-    return adminDoc.exists();  // true if admin, else false
+    return adminDoc.exists(); // true if admin, else false
   }
-
-
 
   useEffect(() => {
     const fetchUserData = async () => {
       if (user) {
         try {
-          setIsLoading(true)
-          const q = query(collection(db, 'employees'), where('uid', '==', user.uid));
+          setIsLoading(true);
+          const q = query(
+            collection(db, "employees"),
+            where("uid", "==", user.uid)
+          );
           const querySnapshot = await getDocs(q);
-          const userIsAdmin = await checkIsAdmin(user.uid)
-          setIsAdmin(userIsAdmin)
+          const userIsAdmin = await checkIsAdmin(user.uid);
+          setIsAdmin(userIsAdmin);
           if (!querySnapshot.empty) {
             const doc = querySnapshot.docs[0];
             setUserData(doc.data());
@@ -66,7 +101,7 @@ const HomeScreen = () => {
           console.error("Error fetching user data:", error);
           Alert.alert("Error", "Could not fetch user data.");
         } finally {
-          setIsLoading(false)
+          setIsLoading(false);
         }
       }
     };
@@ -79,29 +114,42 @@ const HomeScreen = () => {
 
   const handleBookMeal = async () => {
     if (!isBookingEnabled) {
-      Alert.alert("Booking Closed", "Meal booking is only available between 12:00 AM and 7:30 AM.");
+      Alert.alert(
+        "Booking Closed",
+        "Meal booking is only available between 12:00 AM - 7:30 AM."
+      );
       return;
     }
     if (!userData) {
       Alert.alert("Error", "User data not loaded yet.");
       return;
     }
-    if (isBookingTimeActive()) {
-      Alert.alert("Booking Closed", "Meal booking is only available between 12:00 AM and 7:30 AM.");
+    if (!isBookingTimeActive()) {
+      Alert.alert(
+        "Booking Closed",
+        "Meal booking is only available between 12:00 AM and 7:30 AM."
+      );
       return;
     }
 
     const today = new Date();
-    const todayDateString = today.toISOString().split('T')[0];
+    const todayDateString = today.toISOString().split("T")[0];
 
     const bookingsRef = collection(db, "mealBookings");
-    const q = query(bookingsRef, where("employeeCode", "==", userData.employeeCode), where("mealDate", "==", todayDateString));
+    const q = query(
+      bookingsRef,
+      where("employeeCode", "==", userData.employeeCode),
+      where("mealDate", "==", todayDateString)
+    );
 
     try {
       setBookMealLoading(true);
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
-        Alert.alert("Already Booked", "You have already booked a meal for today.");
+        Alert.alert(
+          "Already Booked",
+          "You have already booked a meal for today."
+        );
       } else {
         const newBooking = {
           companyCode: userData.companyCode,
@@ -109,7 +157,7 @@ const HomeScreen = () => {
           firstName: userData.firstName,
           lastName: userData.lastName,
           mealDate: todayDateString,
-          mealTime: today.toTimeString().split(' ')[0],
+          mealTime: today.toTimeString().split(" ")[0],
         };
         await addDoc(bookingsRef, newBooking);
         Alert.alert("Success", "Your meal has been booked successfully.");
@@ -118,9 +166,7 @@ const HomeScreen = () => {
       console.error("Error booking meal:", error);
       Alert.alert("Error", "There was an error booking your meal.");
     } finally {
-
       setBookMealLoading(false); // ✅ Always stop loading
-
     }
   };
 
@@ -132,32 +178,43 @@ const HomeScreen = () => {
           <Text style={styles.logoutButtonText}>Logout</Text>
         </TouchableOpacity>
       </View>
-      {isLoading ? <LoadingScreen /> : <View style={styles.content}>
-        {userData ? (
-          <View style={styles.userDetails}>
-            <Text style={styles.greeting}>Hello, {userData.firstName}!</Text>
-            <Text>Company Code: {userData.companyCode}</Text>
-            <Text>Employee Code: {userData.employeeCode}</Text>
-            <Text style={styles.bookingTiming}>Booking Timing: 12:00 AM - 7:30 AM</Text>
-          </View>
-        ) : (
-          <Text>Loading user data...</Text>
-        )}
-        <TouchableOpacity
-          style={[styles.bookMealButton, (!isBookingEnabled || BookMealLoading) && styles.disabledButton]}
-          onPress={handleBookMeal}
-          disabled={!isBookingEnabled || BookMealLoading}
-        >
-          {BookMealLoading ? (
-            <ActivityIndicator size="large" color="#fff" />
+      {isLoading ? (
+        <LoadingScreen />
+      ) : (
+        <View style={styles.content}>
+          {userData ? (
+            <View style={styles.userDetails}>
+              <Text style={styles.greeting}>Hello, {userData.firstName}!</Text>
+              <Text>Company Code: {userData.companyCode}</Text>
+              <Text>Employee Code: {userData.employeeCode}</Text>
+              <Text style={styles.bookingTiming}>
+                Booking Timing: 12:00 AM - 7:30 AM
+              </Text>
+            </View>
           ) : (
-            <Text style={styles.bookMealButtonText}>Book a Meal</Text>
+            <Text>Loading user data...</Text>
           )}
-        </TouchableOpacity>
-        {isAdmin && <TouchableOpacity onPress={() => router.push('/AdminPanel')}>
-          <Text style={styles.adminLink}>Access Admin Panel</Text>
-        </TouchableOpacity>}
-      </View>}
+          <TouchableOpacity
+            style={[
+              styles.bookMealButton,
+              (!isBookingEnabled || BookMealLoading) && styles.disabledButton,
+            ]}
+            onPress={handleBookMeal}
+            disabled={!isBookingEnabled || BookMealLoading}
+          >
+            {BookMealLoading ? (
+              <ActivityIndicator size="large" color="#fff" />
+            ) : (
+              <Text style={styles.bookMealButtonText}>Book a Meal</Text>
+            )}
+          </TouchableOpacity>
+          {isAdmin && (
+            <TouchableOpacity onPress={() => router.push("/AdminPanel")}>
+              <Text style={styles.adminLink}>Access Admin Panel</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </View>
   );
 };
@@ -165,17 +222,17 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
   header: {
     backgroundColor: Colors.light.tint,
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    shadowColor: '#000',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
@@ -183,11 +240,11 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    fontWeight: 'bold',
-    color: 'white',
+    fontWeight: "bold",
+    color: "white",
   },
   logoutButton: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 20,
@@ -196,27 +253,27 @@ const styles = StyleSheet.create({
   bookingTiming: {
     marginTop: 10,
     fontSize: 16,
-    color: '#444',
-    fontWeight: '500',
+    color: "#444",
+    fontWeight: "500",
   },
   logoutButtonText: {
     color: Colors.light.tint,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontSize: 14,
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   userDetails: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 40,
   },
   greeting: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
   },
   bookMealButton: {
@@ -224,26 +281,26 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 100,
     backgroundColor: Colors.light.tint,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 40,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
   },
   disabledButton: {
-    backgroundColor: '#a9a9a9', // A darker grey for disabled state
+    backgroundColor: "#a9a9a9", // A darker grey for disabled state
   },
   bookMealButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   adminLink: {
     color: Colors.light.tint,
-    textDecorationLine: 'underline',
+    textDecorationLine: "underline",
     marginTop: 20,
   },
 });
